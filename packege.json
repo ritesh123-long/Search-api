@@ -1,0 +1,21 @@
+{
+  "name": "youtube-music-no-key",
+  "version": "1.0.1",
+  "description": "YouTube music search prototype using yt-search (no API key). Ready to deploy on Render. Includes music URLs and high-quality thumbnails.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "start:dev": "NODE_ENV=development node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "yt-search": "^2.13.1",
+    "cors": "^2.8.5",
+    "helmet": "^7.0.0",
+    "express-rate-limit": "^6.8.0",
+    "node-cache": "^5.1.2"
+  }
+}
