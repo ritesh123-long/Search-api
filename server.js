@@ -3,38 +3,80 @@ const yts = require('yt-search');
 const helmet = require('helmet');
 const cors = require('cors');
 const rateLimit = require('express-rate-limit');
-const NodeCache = require('node-cache');
 
 const app = express();
+
 app.use(helmet());
 app.use(cors());
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
-// Simple cache (TTL 60 seconds)
-const cache = new NodeCache({ stdTTL: 60, checkperiod: 120 });
-
-// Rate limiting
+// Rate limit
 const limiter = rateLimit({
   windowMs: 60000,
-  max: 40,
-  standardHeaders: true,
-  legacyHeaders: false
+  max: 40
 });
 app.use(limiter);
 
-app.get('/', (req, res) => {
-  res.send('YouTube Music Search (no-key) — try /search?q=arijit+singh');
-});
+// helper function
+async function doSearch(q, maxResults = 10) {
+  const r = await yts(q);
+  return (r.videos || [])
+    .slice(0, Math.min(50, maxResults))
+    .map(v => {
+      const id = v.videoId;
+      return {
+        id,
+        title: v.title,
+        duration: v.timestamp,
+        views: v.views,
+        thumbnail: v.thumbnail,
+        youtube_url: `https://www.youtube.com/watch?v=${id}`,
+        youtube_music_url: `https://music.youtube.com/watch?v=${id}`
+      };
+    });
+}
 
-app.get('/health', (req, res) => {
-  res.json({ ok: true, time: new Date().toISOString() });
-});
-
-// Main Search API
+// GET /search?q=xxx
 app.get('/search', async (req, res) => {
   try {
-    const q = (req.query.q || '').trim();
-    if (!q) return res.status(400).json({ error: 'q is required' });
+    const q = (req.query.q || "").trim();
+    if (!q) return res.status(400).json([]);
+
+    const maxResults = parseInt(req.query.maxResults || "10", 10);
+
+    const items = await doSearch(q, maxResults);
+
+    // Only JSONArray output
+    res.json(items);
+
+  } catch (err) {
+    console.error(err);
+    res.json([]);
+  }
+});
+
+// POST /search (form-data or JSON)
+app.post('/search', async (req, res) => {
+  try {
+    const q = (req.body.search || req.body.q || "").trim();
+    if (!q) return res.status(400).json([]);
+
+    const maxResults = parseInt(req.body.maxResults || "10", 10);
+
+    const items = await doSearch(q, maxResults);
+
+    // Only JSONArray output
+    res.json(items);
+
+  } catch (err) {
+    console.error(err);
+    res.json([]);
+  }
+});
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log("API running on port " + PORT));    if (!q) return res.status(400).json({ error: 'q is required' });
 
     const maxResults = Math.min(50, Math.max(1, parseInt(req.query.maxResults || '10', 10)));
     const filter = (req.query.filter || '').toLowerCase();
